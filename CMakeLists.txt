@@ -1,23 +1,32 @@
-project (fft-webgpu)
-cmake_minimum_required(VERSION 3.5.1)
-option(JS_ONLY "Compiles to native JS (No WASM)" OFF)
+cmake_minimum_required(VERSION 3.13) # CMake version check
+project(app)                         # Create project "app"
+set(CMAKE_CXX_STANDARD 20)           # Enable C++20 standard
 
-set(CMAKE_TOOLCHAIN_FILE " ~/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
+file(GLOB_RECURSE SOURCES "src/*.cpp")
 
-add_definitions(-std=c++11 -O3)
-include_directories(include)
+include_directories("include")
 
-file(GLOB SOURCES src/*.cpp)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/public")
-add_executable(a ${SOURCES})
 
-if(JS_ONLY)
-	message(STATUS "Setting compilation target to native JavaScript")
-	set(CMAKE_EXECUTABLE_SUFFIX ".js")
-	set_target_properties(a PROPERTIES LINK_FLAGS "-s WASM=0 -s EXPORTED_FUNCTIONS='[_main]'")
-else(JS_ONLY)
-	message(STATUS "Setting compilation target to WASM")
-	set(CMAKE_EXECUTABLE_SUFFIX ".wasm.js")
-	set_target_properties(a PROPERTIES LINK_FLAGS "-s WASM=1 -s EXPORTED_FUNCTIONS='[_main]'")
-endif(JS_ONLY)
+include(FetchContent)
+
+FetchContent_Declare(
+	glm
+	GIT_REPOSITORY	https://github.com/g-truc/glm.git
+	GIT_TAG 	bf71a834948186f4097caa076cd2663c69a10e1e #refs/tags/1.0.1
+)
+
+FetchContent_MakeAvailable(glm)
+
+add_executable(app src/main.cpp)
+target_link_libraries(app PRIVATE glm::glm)
+
+
+if(EMSCRIPTEN)
+  set_target_properties(app PROPERTIES SUFFIX ".html")
+  target_link_options(app PRIVATE "-sUSE_WEBGPU=1" "-sUSE_GLFW=3")
+else()
+  set(DAWN_FETCH_DEPENDENCIES ON)
+  add_subdirectory("dawn" EXCLUDE_FROM_ALL)
+  target_link_libraries(app PRIVATE webgpu_cpp webgpu_dawn webgpu_glfw)
+endif()

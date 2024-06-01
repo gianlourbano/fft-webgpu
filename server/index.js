@@ -3,10 +3,12 @@ const path = require("path");
 
 const app = express();
 
-app.use(express.static(path.resolve(__dirname, "..", "public")));
+const base = path.resolve(__dirname, "..", "build");
+
+app.use(express.static(base));
 
 app.get("/", (req, res) => {
-    res.sendFile(path.resolve(__dirname + "/index.html"));
+    res.sendFile(path.resolve(base ,"app.html"));
 });
 
 app.listen(3000, () => {
